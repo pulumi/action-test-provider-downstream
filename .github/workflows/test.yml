@@ -1,0 +1,30 @@
+name: "Test typescript-action"
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - 'releases/*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.6.9
+      - uses: actions/checkout@v1
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: git clone https://github.com/pulumi/pulumi-terraform-bridge ../pulumi-terraform-bridge
+      - uses: ./
+        env:
+          GOPROXY: "https://proxy.golang.org"
+        with:
+          downstream-name: pulumi-vault
+          downstream-url: https://github.com/pulumi/pulumi-vault
+          pulumi-bot-token: ${{ secrets.PULUMI_BOT_TOKEN }}
+          github-actions-token: ${{ secrets.GITHUB_TOKEN }}
+
