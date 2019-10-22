@@ -1,0 +1,9 @@
+name: 'Test Downstream Providers'
+description: 'Test the effect of Pulumi Bridge changes on downstream providers'
+author: 'James Nugent'
+inputs:
+  downstream-url:
+    description: 'URL of the downstream repository'
+runs:
+  using: 'node12'
+  main: 'lib/main.js'
