@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/setup-python@v1
         with:
-          python-version: 3.6.9
+          python-version: 3.6.10
       - uses: actions/checkout@v1
 
       - run: npm ci
@@ -25,6 +25,7 @@ jobs:
         with:
           downstream-name: pulumi-vault
           downstream-url: https://github.com/pulumi/pulumi-vault
+          use-provider-dir: true
           pulumi-bot-token: ${{ secrets.PULUMI_BOT_TOKEN }}
           github-actions-token: ${{ secrets.GITHUB_TOKEN }}
 
