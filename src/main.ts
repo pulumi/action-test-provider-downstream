@@ -1,6 +1,6 @@
 import * as core from "@actions/core";
-import * as github from "@actions/github";
 import {exec} from "@actions/exec";
+import * as github from "@actions/github";
 import * as path from "path";
 
 async function find_gopath(): Promise<string> {
@@ -35,7 +35,7 @@ async function run() {
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/pulumi-terraform-bridge/${checkoutSHA}`;
 
-        const replace = "github.com/pulumi/pulumi-terraform-bridge";
+        const replace = "github.com/pulumi/pulumi-terraform-bridge/v2";
         let replaceWith = "../pulumi-terraform-bridge";
         const gitUser = "Pulumi Bot";
         const gitEmail = "bot@pulumi.com";
@@ -118,7 +118,7 @@ async function run() {
                 owner: github.context.issue.owner,
                 repo: github.context.issue.repo,
                 issue_number: github.context.issue.number,
-                body: `Diff for [${downstreamName}](${diffUrl}) with commit ${checkoutSHA}`,
+                body: `Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}`,
             });
         } else {
             await exec("git", ["show"], inDownstreamOptions);
