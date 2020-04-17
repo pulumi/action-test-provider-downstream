@@ -1,6 +1,6 @@
 # `test-provider-downstream` GitHub Action
 
-This repository contains a GitHub Action for testing the effects of [`pulumi-terraform-bridge`][[1] changes on downstream providers.
+This repository contains a GitHub Action for testing the effects of [`pulumi-terraform-bridge`][1] changes on downstream providers.
 
 This is not generally useful outside of Pulumi Development. For usage guidance, see the [CI workflow][2] in `pulumi-terraform-bridge`.
 
