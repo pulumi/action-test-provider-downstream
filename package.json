@@ -14,12 +14,12 @@
   "author": "Pulumi Corporation",
   "license": "Apache2.0",
   "dependencies": {
-    "@actions/core": "^1.2.2",
+    "@actions/core": "^1.2.3",
     "@actions/exec": "^1.0.3",
-    "@actions/github": "^1.1.0"
+    "@actions/github": "^2.1.1"
   },
   "devDependencies": {
-    "@types/node": "^12.12.28",
-    "typescript": "^3.8.2"
+    "@types/node": "^12.12.35",
+    "typescript": "^3.8.3"
   }
 }

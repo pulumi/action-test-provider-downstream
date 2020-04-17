@@ -10,16 +10,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v1
+      - name: Install Python
+        uses: actions/setup-python@v1
         with:
           python-version: 3.6.10
-      - uses: actions/checkout@v1
+      - name: Install tf2pulumi
+        uses: pulumi/action-install-tf2pulumi@releases/v1
+      - name: Check Out Sources
+        uses: actions/checkout@v1
 
       - run: npm ci
       - run: npm run build
       - run: npm test
-      - run: git clone https://github.com/pulumi/pulumi-terraform-bridge ../pulumi-terraform-bridge
-      - uses: ./
+
+      - name: Clone Terraform bridge repository
+        run: git clone https://github.com/pulumi/pulumi-terraform-bridge ../pulumi-terraform-bridge
+      - name: Test Action on pulumi-vault repository
+        uses: ./
         env:
           GOPROXY: "https://proxy.golang.org"
         with:
