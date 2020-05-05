@@ -35,10 +35,16 @@ async function run() {
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/pulumi-terraform-bridge/${checkoutSHA}`;
 
-        const replace = "github.com/pulumi/pulumi-terraform-bridge/v2";
-        let replaceWith = "../pulumi-terraform-bridge";
+        const replace = core.getInput("replace") || "github.com/pulumi/pulumi-terraform-bridge/v2";
+        const replaceWith = core.getInput("replace-with") || "pulumi-terraform-bridge";
+        let gomodPath = core.getInput("go-mod-path") || "go.mod";
         const gitUser = "Pulumi Bot";
         const gitEmail = "bot@pulumi.com";
+
+        const useProviderDir = core.getInput("use-provider-dir") == "true";
+        if (useProviderDir) {
+            gomodPath = "provider/go.mod";
+        }
 
         // Ensure that the bot token is masked in the log output
         let hasPulumiBotToken = false;
@@ -62,16 +68,14 @@ async function run() {
         const parentDir = path.resolve(process.cwd(), "..");
         const downstreamRepo = core.getInput("downstream-url");
         const downstreamName = core.getInput("downstream-name");
-        const useProviderDir = core.getInput("use-provider-dir") == "true";
         const downstreamDir = path.join(parentDir, downstreamName);
 
-        core.info(`Mode: ${useProviderDir ? "provider directory" : "root directory"}`);
+        const downstreamModDirFull = path.dirname(path.join(downstreamDir, gomodPath));
+        const relativeRoot = path.relative(downstreamModDirFull, downstreamDir);
+        const replacePath = path.join(relativeRoot, "..", replaceWith);
 
-        let downstreamModDirFull = downstreamDir;
-        if (useProviderDir) {
-            downstreamModDirFull = path.join(downstreamDir, "provider");
-            replaceWith = "../../pulumi-terraform-bridge"
-        }
+        core.info(`go.mod @ ${gomodPath}`);
+        core.info(`replacing ${replace} with ${replaceWith} @ ${replacePath}`);
 
         const inDownstreamOptions = {
             cwd: downstreamDir,
@@ -92,7 +96,7 @@ async function run() {
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
-        await exec("go", ["mod", "edit", `-replace=${replace}=${replaceWith}`], inDownstreamModOptions);
+        await exec("go", ["mod", "edit", `-replace=${replace}=${replacePath}`], inDownstreamModOptions);
         await exec("go", ["mod", "download"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", "Replace pulumi-terraform-bridge module"], inDownstreamOptions);
 
