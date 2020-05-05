@@ -30,13 +30,23 @@ async function find_commit_sha(path: string, offset: number = 0): Promise<string
     return output.trim();
 }
 
+interface replacement {
+    module: string;
+    with: string;
+}
+
 async function run() {
     try {
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/pulumi-terraform-bridge/${checkoutSHA}`;
 
-        const replace = core.getInput("replace") || "github.com/pulumi/pulumi-terraform-bridge/v2";
-        const replaceWith = core.getInput("replace-with") || "pulumi-terraform-bridge";
+        const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
+        const replacements: replacement[] = [];
+        for (const replaceStr of replacementsStr.split(",")) {
+            const [replaceModule, replaceWith] = replaceStr.split("=", 2);
+            replacements.push({ module: replaceModule, with: replaceWith });
+        }
+
         let gomodPath = core.getInput("go-mod-path") || "go.mod";
         const gitUser = "Pulumi Bot";
         const gitEmail = "bot@pulumi.com";
@@ -72,10 +82,8 @@ async function run() {
 
         const downstreamModDirFull = path.dirname(path.join(downstreamDir, gomodPath));
         const relativeRoot = path.relative(downstreamModDirFull, downstreamDir);
-        const replacePath = path.join(relativeRoot, "..", replaceWith);
 
         core.info(`go.mod @ ${gomodPath}`);
-        core.info(`replacing ${replace} with ${replaceWith} @ ${replacePath}`);
 
         const inDownstreamOptions = {
             cwd: downstreamDir,
@@ -96,7 +104,12 @@ async function run() {
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
-        await exec("go", ["mod", "edit", `-replace=${replace}=${replacePath}`], inDownstreamModOptions);
+        for (const replace of replacements) {
+            const replacePath = path.join(relativeRoot, "..", replace.with);
+            core.info(`replacing ${replace.module} with ${replace.with} @ ${replacePath}`);
+
+            await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
+        }
         await exec("go", ["mod", "download"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", "Replace pulumi-terraform-bridge module"], inDownstreamOptions);
 
