@@ -37,8 +37,9 @@ interface replacement {
 
 async function run() {
     try {
+        const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
-        const branchName = `integration/pulumi-terraform-bridge/${checkoutSHA}`;
+        const branchName = `integration/${upstream}/${checkoutSHA}`;
 
         const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
         const replacements: replacement[] = [];
@@ -111,12 +112,12 @@ async function run() {
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
         await exec("go", ["mod", "download"], inDownstreamModOptions);
-        await exec("git", ["commit", "-a", "-m", "Replace pulumi-terraform-bridge module"], inDownstreamOptions);
+        await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
         await exec("make", ["only_build"], inDownstreamOptions);
 
         await exec("git", ["add", "."], inDownstreamOptions);
-        await exec("git", ["commit", "--allow-empty", "-m", `Update to pulumi-terraform-bridge@${checkoutSHA}`], inDownstreamOptions);
+        await exec("git", ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions);
 
         if (hasPulumiBotToken && hasGitHubActionsToken) {
             const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
