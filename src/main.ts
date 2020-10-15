@@ -133,17 +133,21 @@ async function run() {
         // const buildChanges = await exec("git", ["diff-files", "--quiet"], inDownstreamOptions)
         // core.info(`hasChanges @ ${buildChanges}`);
 
+        // Add a changlog entry
+        await exec("chg", [`Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions)
+            .catch(error => console.log(error))
+
         // Commit the results
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec("git", ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions);
 
         if (hasPulumiBotToken && hasGitHubActionsToken) {
-            const client = new github.GitHub(githubActionsToken);
+            const client = new github.GitHub(pulumiBotToken);
 
             if (openPullRequest) {
-                // const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi/${downstreamName}`;
-                // await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
-                await exec("git", ["push", "origin", "--set-upstream", "--force", branchName], inDownstreamOptions);
+                const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi/${downstreamName}`;
+                await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
+                await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
 
                 const pr = await client.pulls.create({
                     base: "master",
@@ -154,12 +158,8 @@ async function run() {
                     draft: true,
                 })
 
-                await client.issues.createComment({
-                    owner: github.context.issue.owner,
-                    repo: github.context.issue.repo,
-                    issue_number: github.context.issue.number,
-                    body: `PR for ${downstreamName} with pulumi-terraform-bridge commit ${checkoutSHA} opened at ${pr.data.url}`,
-                });
+                await client.pulls.createReviewRequest
+
             } else {
                 const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
 
