@@ -141,14 +141,14 @@ async function run() {
             const client = new github.GitHub(githubActionsToken);
 
             if (openPullRequest) {
-                const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi/${downstreamName}`;
-                await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
-                await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
+                // const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi/${downstreamName}`;
+                // await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
+                await exec("git", ["push", "origin", "--set-upstream", "--force", branchName], inDownstreamOptions);
 
                 const pr = await client.pulls.create({
                     base: "master",
                     title: `Automated PR for pulumi-terraform-bridge commit ${checkoutSHA}`,
-                    repo: github.context.issue.repo,
+                    repo: downstreamName,
                     owner: github.context.issue.owner,
                     head: branchName,
                     draft: true,
