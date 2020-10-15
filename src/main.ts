@@ -140,6 +140,8 @@ async function run() {
         if (hasPulumiBotToken && hasGitHubActionsToken) {
             const client = new github.GitHub(githubActionsToken);
 
+            await exec("git", ["push", "origin", branchName], inDownstreamOptions);
+
             if (openPullRequest) {
                 const pr = await client.pulls.create({
                     base: "master",
