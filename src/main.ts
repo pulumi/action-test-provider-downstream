@@ -130,7 +130,7 @@ async function run() {
         // Run the build
         await exec("make", ["only_build"], inDownstreamOptions);
 
-        const buildChanges = await exec("git", ["diff", "--stat"], inDownstreamOptions)
+        const buildChanges = await exec("git", ["diff-files", "--quiet"], inDownstreamOptions)
         core.info(`hasChanges @ ${buildChanges}`);
 
         // Commit the results
@@ -140,9 +140,11 @@ async function run() {
         if (hasPulumiBotToken && hasGitHubActionsToken) {
             const client = new github.GitHub(githubActionsToken);
 
-            await exec("git", ["push", "origin", branchName], inDownstreamOptions);
-
             if (openPullRequest) {
+                const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi/${downstreamName}`;
+                await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
+                await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
+
                 const pr = await client.pulls.create({
                     base: "master",
                     title: `Automated PR for pulumi-terraform-bridge commit ${checkoutSHA}`,
