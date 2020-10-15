@@ -134,6 +134,12 @@ async function run() {
 
             const client = new github.GitHub(githubActionsToken);
 
+            // let's force a Fork if the fork doesn't already exist
+            await client.repos.createFork({
+                owner: "pulumi-bot",
+                repo: downstreamName,
+            })
+
             if (openPullRequest) {
                 const pr = await client.pulls.create({
                     base: "master",
