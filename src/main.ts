@@ -119,37 +119,31 @@ async function run() {
             }
         }
 
+        // Prepare the go.mod file
         await exec("go", ["mod", "download"], inDownstreamModOptions);
+
+        if (openPullRequest) {
+            await exec("go", ["mod", "tidy"], inDownstreamModOptions);
+        }
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
+        // Run the build
         await exec("make", ["only_build"], inDownstreamOptions);
 
+        const buildChanges = await exec("git", ["diff", "--stat"], inDownstreamOptions)
+        core.info(`hasChanges @ ${buildChanges}`);
+
+        // Commit the results
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec("git", ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions);
 
         if (hasPulumiBotToken && hasGitHubActionsToken) {
             const client = new github.GitHub(githubActionsToken);
 
-            // let's force a Fork if the fork doesn't already exist
-            await client.repos.createFork({
-                owner: "pulumi",
-                repo: downstreamName,
-                organization: "pulumi-bot"
-            })
-            const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
-
-            await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
-            await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
-
-            const newCommitSha = await find_commit_sha(downstreamDir, 0);
-            const oldCommitSha = await find_commit_sha(downstreamDir, 1);
-
-            const diffUrl = `https://github.com/pulumi-bot/${downstreamName}/compare/${oldCommitSha}..${newCommitSha}`;
-
             if (openPullRequest) {
                 const pr = await client.pulls.create({
                     base: "master",
-                    title: "Automated PR for pulumi-terraform-bridge commit ${checkoutSHA}",
+                    title: `Automated PR for pulumi-terraform-bridge commit ${checkoutSHA}`,
                     repo: github.context.issue.repo,
                     owner: github.context.issue.owner,
                     head: branchName,
@@ -163,6 +157,16 @@ async function run() {
                     body: `PR for ${downstreamName} with pulumi-terraform-bridge commit ${checkoutSHA} opened at ${pr.data.url}`,
                 });
             } else {
+                const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
+
+                await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
+                await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
+
+                const newCommitSha = await find_commit_sha(downstreamDir, 0);
+                const oldCommitSha = await find_commit_sha(downstreamDir, 1);
+
+                const diffUrl = `https://github.com/pulumi-bot/${downstreamName}/compare/${oldCommitSha}..${newCommitSha}`;
+
                 await client.issues.createComment({
                     owner: github.context.issue.owner,
                     repo: github.context.issue.repo,
