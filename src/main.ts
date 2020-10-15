@@ -122,6 +122,13 @@ async function run() {
         await exec("git", ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions);
 
         if (hasPulumiBotToken && hasGitHubActionsToken) {
+            const client = new github.GitHub(githubActionsToken);
+
+            // let's force a Fork if the fork doesn't already exist
+            await client.repos.createFork({
+                owner: "pulumi-bot",
+                repo: downstreamName,
+            })
             const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
 
             await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
@@ -131,14 +138,6 @@ async function run() {
             const oldCommitSha = await find_commit_sha(downstreamDir, 1);
 
             const diffUrl = `https://github.com/pulumi-bot/${downstreamName}/compare/${oldCommitSha}..${newCommitSha}`;
-
-            const client = new github.GitHub(githubActionsToken);
-
-            // let's force a Fork if the fork doesn't already exist
-            await client.repos.createFork({
-                owner: "pulumi-bot",
-                repo: downstreamName,
-            })
 
             if (openPullRequest) {
                 const pr = await client.pulls.create({
