@@ -40,22 +40,8 @@ async function run() {
         const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/${upstream}/${checkoutSHA}`;
-
-        const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
-        const replacements: replacement[] = [];
-        for (const replaceStr of replacementsStr.split(",")) {
-            const [replaceModule, replaceWith] = replaceStr.split("=", 2);
-            replacements.push({ module: replaceModule, with: replaceWith });
-        }
-
-        let gomodPath = core.getInput("go-mod-path") || "go.mod";
         const gitUser = "Pulumi Bot";
         const gitEmail = "bot@pulumi.com";
-
-        const useProviderDir = core.getInput("use-provider-dir") == "true";
-        if (useProviderDir) {
-            gomodPath = "provider/go.mod";
-        }
 
         // Ensure that the bot token is masked in the log output
         let hasPulumiBotToken = false;
@@ -73,7 +59,14 @@ async function run() {
             hasGitHubActionsToken = true;
         }
 
+        // Check if this is a downstream test or a PR
         const openPullRequest = core.getInput("open-pull-request") == "true";
+
+        let gomodPath = core.getInput("go-mod-path") || "go.mod";
+        const useProviderDir = core.getInput("use-provider-dir") == "true";
+        if (useProviderDir) {
+            gomodPath = "provider/go.mod";
+        }
 
         const gopathBin = path.join(await find_gopath(), "bin");
         const newPath = `${gopathBin}:${process.env.PATH}`;
@@ -107,12 +100,25 @@ async function run() {
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
-        for (const replace of replacements) {
-            const replacePath = path.join(relativeRoot, "..", replace.with);
-            core.info(`replacing ${replace.module} with ${replace.with} @ ${replacePath}`);
-
-            await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
+        const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
+        const replacements: replacement[] = [];
+        for (const replaceStr of replacementsStr.split(",")) {
+            const [replaceModule, replaceWith] = replaceStr.split("=", 2);
+            replacements.push({module: replaceModule, with: replaceWith});
         }
+        if (!openPullRequest) {
+            for (const replace of replacements) {
+                const replacePath = path.join(relativeRoot, "..", replace.with);
+                core.info(`replacing ${replace.module} with ${replace.with} @ ${replacePath}`);
+
+                await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
+            }
+        } else {
+            for (const replace of replacements) {
+                await exec("go", ["mod", "edit", `-require=${replace.module}@${checkoutSHA}`], inDownstreamModOptions);
+            }
+        }
+
         await exec("go", ["mod", "download"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
