@@ -126,8 +126,9 @@ async function run() {
 
             // let's force a Fork if the fork doesn't already exist
             await client.repos.createFork({
-                owner: "pulumi-bot",
+                owner: "pulumi",
                 repo: downstreamName,
+                organization: "pulumi-bot"
             })
             const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
 
