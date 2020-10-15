@@ -39,7 +39,7 @@ async function run() {
     try {
         const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
-        const branchName = `integration/${upstream}/${checkoutSHA}`;
+        const branchName = `integration_${upstream}_${checkoutSHA}`;
         const gitUser = "Pulumi Bot";
         const gitEmail = "bot@pulumi.com";
 
