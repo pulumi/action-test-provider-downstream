@@ -130,8 +130,8 @@ async function run() {
         // Run the build
         await exec("make", ["only_build"], inDownstreamOptions);
 
-        const buildChanges = await exec("git", ["diff-files", "--quiet"], inDownstreamOptions)
-        core.info(`hasChanges @ ${buildChanges}`);
+        // const buildChanges = await exec("git", ["diff-files", "--quiet"], inDownstreamOptions)
+        // core.info(`hasChanges @ ${buildChanges}`);
 
         // Commit the results
         await exec("git", ["add", "."], inDownstreamOptions);
