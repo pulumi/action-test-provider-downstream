@@ -25,13 +25,13 @@ jobs:
 
       - name: Clone Terraform bridge repository
         run: git clone https://github.com/pulumi/pulumi-terraform-bridge ../pulumi-terraform-bridge
-      - name: Test Action on pulumi-vault repository
+      - name: Test Action on pulumi-random repository
         uses: ./
         env:
           GOPROXY: "https://proxy.golang.org"
         with:
-          downstream-name: pulumi-vault
-          downstream-url: https://github.com/pulumi/pulumi-vault
+          downstream-name: pulumi-random
+          downstream-url: https://github.com/pulumi/pulumi-random
           use-provider-dir: true
           pulumi-bot-token: ${{ secrets.PULUMI_BOT_TOKEN }}
           github-actions-token: ${{ secrets.GITHUB_TOKEN }}

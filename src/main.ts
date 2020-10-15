@@ -73,6 +73,8 @@ async function run() {
             hasGitHubActionsToken = true;
         }
 
+        const openPullRequest = core.getInput("open-pull-request") == "true";
+
         const gopathBin = path.join(await find_gopath(), "bin");
         const newPath = `${gopathBin}:${process.env.PATH}`;
 
@@ -132,12 +134,30 @@ async function run() {
 
             const client = new github.GitHub(githubActionsToken);
 
-            await client.issues.createComment({
-                owner: github.context.issue.owner,
-                repo: github.context.issue.repo,
-                issue_number: github.context.issue.number,
-                body: `Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}`,
-            });
+            if (openPullRequest) {
+                const pr = await client.pulls.create({
+                    base: "master",
+                    title: "Automated PR for pulumi-terraform-bridge commit ${checkoutSHA}",
+                    repo: github.context.issue.repo,
+                    owner: github.context.issue.owner,
+                    head: branchName,
+                    draft: true,
+                })
+
+                await client.issues.createComment({
+                    owner: github.context.issue.owner,
+                    repo: github.context.issue.repo,
+                    issue_number: github.context.issue.number,
+                    body: `PR for ${downstreamName} with pulumi-terraform-bridge commit ${checkoutSHA} opened at ${pr.data.url}`,
+                });
+            } else {
+                await client.issues.createComment({
+                    owner: github.context.issue.owner,
+                    repo: github.context.issue.repo,
+                    issue_number: github.context.issue.number,
+                    body: `Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}`,
+                });
+            }
         } else {
             await exec("git", ["show"], inDownstreamOptions);
         }
