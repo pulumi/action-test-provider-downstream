@@ -13,7 +13,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v1
         with:
-          python-version: 3.6.10
+          python-version: 3.6.x
       - name: Install tf2pulumi
         uses: pulumi/action-install-tf2pulumi@releases/v1
       - name: Check Out Sources
