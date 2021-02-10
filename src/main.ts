@@ -40,6 +40,7 @@ async function run() {
         const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/${upstream}/${checkoutSHA}`;
+        const isPrivateRepo = core.getInput("is-private-repo") || false;
 
         const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
         const replacements: replacement[] = [];
@@ -77,7 +78,7 @@ async function run() {
         const newPath = `${gopathBin}:${process.env.PATH}`;
 
         const parentDir = path.resolve(process.cwd(), "..");
-        const downstreamRepo = core.getInput("downstream-url");
+        let downstreamRepo = core.getInput("downstream-url");
         const downstreamName = core.getInput("downstream-name");
         const downstreamDir = path.join(parentDir, downstreamName);
 
@@ -98,6 +99,10 @@ async function run() {
             ...inDownstreamOptions,
             cwd: downstreamModDirFull,
         };
+
+        if (isPrivateRepo) {
+            downstreamRepo = `https://${pulumiBotToken}:x-oauth-basic@github.com/${downstreamRepo}`
+        }
 
         await exec("git", ["clone", downstreamRepo, downstreamDir]);
 
