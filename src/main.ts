@@ -40,7 +40,7 @@ async function run() {
         const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/${upstream}/${checkoutSHA}`;
-        const isPrivateRepo = core.getInput("is-private-repo") || false;
+        const isPrivateRepo = core.getInput("is-private-repo");
 
         const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
         const replacements: replacement[] = [];
@@ -100,7 +100,7 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        if (isPrivateRepo) {
+        if (isPrivateRepo != undefined && isPrivateRepo != "") {
             downstreamRepo = `https://${pulumiBotToken}:x-oauth-basic@github.com/${downstreamRepo}`
         }
 
