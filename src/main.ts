@@ -100,15 +100,15 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        await exec("git", ["config", "--global", "user.name", gitUser], inDownstreamOptions);
-        await exec("git", ["config", "--global", "user.email", gitEmail], inDownstreamOptions);
-
         if (isPrivateRepo != undefined && isPrivateRepo != "") {
-            downstreamRepo = `https://${pulumiBotToken}:x-oauth-basic@github.com/${downstreamRepo}`
+            downstreamRepo = `https://${pulumiBotToken}@github.com/${downstreamRepo}`
         }
 
         await exec("git", ["clone", downstreamRepo, downstreamDir]);
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
+
+        await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
+        await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
         for (const replace of replacements) {
             const replacePath = path.join(relativeRoot, "..", replace.with);
