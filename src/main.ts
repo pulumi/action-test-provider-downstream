@@ -104,6 +104,7 @@ async function run() {
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
         if (isPrivateRepo != undefined && isPrivateRepo != "") {
+            core.info("setting password details");
             await exec("git", ["config", "user.password", pulumiBotToken], inDownstreamOptions);
         }
 
