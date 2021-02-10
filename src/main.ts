@@ -101,10 +101,11 @@ async function run() {
         };
 
         if (isPrivateRepo != undefined && isPrivateRepo != "") {
-            downstreamRepo = `https://${pulumiBotToken}@github.com/${downstreamRepo}`
+            downstreamRepo = `https://${pulumiBotToken}@github.com/${downstreamRepo}.git`
+            await exec("git", ["clone", downstreamRepo, downstreamDir]);
         }
 
-        await exec("git", ["clone", downstreamRepo, downstreamDir]);
+
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
 
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
