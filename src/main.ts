@@ -78,7 +78,12 @@ async function run() {
         const newPath = `${gopathBin}:${process.env.PATH}`;
 
         const parentDir = path.resolve(process.cwd(), "..");
+
         let downstreamRepo = core.getInput("downstream-url");
+        if (pulumiBotToken) {
+            downstreamRepo = `https://${pulumiBotToken}@github.com/${downstreamRepo}.git`
+        }
+
         const downstreamName = core.getInput("downstream-name");
         const downstreamDir = path.join(parentDir, downstreamName);
 
@@ -100,12 +105,7 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        if (isPrivateRepo != undefined && isPrivateRepo != "") {
-            downstreamRepo = `https://${pulumiBotToken}@github.com/${downstreamRepo}.git`
-            await exec("git", ["clone", downstreamRepo, downstreamDir]);
-        }
-
-
+        await exec("git", ["clone", downstreamRepo, downstreamDir]);
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
 
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
