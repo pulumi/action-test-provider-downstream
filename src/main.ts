@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import {exec} from "@actions/exec";
 import * as github from "@actions/github";
 import * as path from "path";
+import {issue} from "@actions/core/lib/command";
 
 async function find_gopath(): Promise<string> {
     let output = "";
@@ -40,6 +41,13 @@ async function run() {
         const upstream = core.getInput("upstream") || "pulumi-terraform-bridge";
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/${upstream}/${checkoutSHA}`;
+
+        // we want to allow the user to be able to pass an issue-number to comment on
+        let issueNumber = github.context.issue.number;
+        let userDefinedIssue = core.getInput("issue-number");
+        if (userDefinedIssue != undefined && userDefinedIssue != "") {
+            issueNumber = Number(userDefinedIssue)
+        }
 
         const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
         const replacements: replacement[] = [];
@@ -135,7 +143,7 @@ async function run() {
             await client.issues.createComment({
                 owner: github.context.issue.owner,
                 repo: github.context.issue.repo,
-                issue_number: github.context.issue.number,
+                issue_number: issueNumber,
                 body: `Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}`,
             });
         } else {
