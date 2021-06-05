@@ -119,7 +119,7 @@ async function run() {
 
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
-        await exec("go", ["mod", "download"], inDownstreamModOptions);
+        await exec("go", ["mod", "tidy"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
         await exec("make", ["only_build"], inDownstreamOptions);
