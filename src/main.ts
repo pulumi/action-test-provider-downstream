@@ -111,7 +111,7 @@ async function run() {
 
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
-        await exec("go", ["mod", "download"], inDownstreamModOptions);
+        await exec("go", ["mod", "tidy"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
         await exec("make", ["only_build"], inDownstreamOptions);
@@ -142,7 +142,11 @@ async function run() {
             await exec("git", ["show"], inDownstreamOptions);
         }
     } catch (error) {
-        core.setFailed(error.message);
+        if (error instanceof Error) {
+            core.setFailed(error.message);
+        } else {
+            core.setFailed(`${error}`);
+        }
     }
 }
 
