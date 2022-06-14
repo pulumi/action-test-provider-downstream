@@ -2,8 +2,29 @@ name: 'Test Downstream Providers'
 description: 'Test the effect of Pulumi Bridge changes on downstream providers'
 author: 'James Nugent'
 inputs:
+  GITHUB_TOKEN:
+    description: 'Github token to use for creating pull requests'
+    required: false
+  pulumi-bot-token:
+    deprecationMessage: 'Replaced by GITHUB_TOKEN'
+    description: 'Github token to use for creating pull requests'
+    required: false
   downstream-url:
     description: 'URL of the downstream repository'
+    required: true
+  downstream-name:
+    description: 'Name of the downstream repository'
+    required: true
+  replacements:
+    description: 'Go mod replacements to use'
+    required: false
+  use-provider-dir:
+    description: 'Go mod replacements to use'
+    required: false
+  issue-number:
+    deprecationMessage: 'Use a github action to create a comment or view the job summary instead.'
+    description: 'Issue to comment on'
+    required: false
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'lib/main.js'
