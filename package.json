@@ -5,7 +5,9 @@
   "description": "GitHub Action for testing effects of changes in the Pulumi-Terraform Bridge in downstream repositories",
   "main": "lib/main.js",
   "scripts": {
-    "build": "tsc"
+    "prebuild": "npm ci",
+    "build": "tsc",
+    "postbuild": "npm ci --prod"
   },
   "repository": {
     "type": "git",
