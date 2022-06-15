@@ -6,33 +6,34 @@ on:
       - master
       - 'releases/*'
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Python
-        uses: actions/setup-python@v1
+      - name: Install Go
+        uses: actions/setup-go@v2
         with:
-          python-version: 3.6.x
-      - name: Install tf2pulumi
-        uses: pulumi/action-install-tf2pulumi@releases/v1
-      - name: Check Out Sources
-        uses: actions/checkout@v1
-
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-
-      - name: Clone Terraform bridge repository
-        run: git clone https://github.com/pulumi/pulumi-terraform-bridge ../pulumi-terraform-bridge
-      - name: Test Action on pulumi-vault repository
+          go-version: 1.18.x
+          check-latest: true
+      - name: Check out source code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.PR_COMMIT_SHA }}
+      - name: Install pulumictl
+        uses: jaxxstorm/action-install-gh-release@v1.7.1
+        with:
+          repo: pulumi/pulumictl
+          tag: v0.0.31
+          cache: enable
+      - name: Test Action on Pulumi-AWS
         uses: ./
         env:
           GOPROXY: "https://proxy.golang.org"
         with:
-          downstream-name: pulumi-vault
-          downstream-url: https://github.com/pulumi/pulumi-vault
+          GITHUB_TOKEN: ${{ secrets.PULUMI_BOT_TOKEN }}
+          downstream-name: pulumi-aws
+          downstream-url: https://github.com/pulumi/pulumi-aws
           use-provider-dir: true
-          pulumi-bot-token: ${{ secrets.PULUMI_BOT_TOKEN }}
-          github-actions-token: ${{ secrets.GITHUB_TOKEN }}
-

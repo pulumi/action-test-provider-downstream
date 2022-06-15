@@ -1,14 +1,13 @@
 import * as core from "@actions/core";
-import {exec} from "@actions/exec";
-import * as github from "@actions/github";
+import { exec } from "@actions/exec";
 import * as path from "path";
 
 async function find_gopath(): Promise<string> {
     let output = "";
     const options = {
         listeners: {
-            stdline: (data) => output += data,
-        }
+            stdline: (data) => (output += data),
+        },
     };
 
     await exec("go", ["env", "GOPATH"], options);
@@ -21,8 +20,8 @@ async function find_commit_sha(path: string, offset: number = 0): Promise<string
     const options = {
         cwd: path,
         listeners: {
-            stdline: (data) => output += data,
-        }
+            stdline: (data) => (output += data),
+        },
     };
 
     await exec("git", ["rev-parse", "--short", `HEAD${offset > 0 ? `~${offset}` : ""}`], options);
@@ -41,7 +40,8 @@ async function run() {
         const checkoutSHA = process.env.GITHUB_SHA;
         const branchName = `integration/${upstream}/${checkoutSHA}`;
 
-        const replacementsStr = core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
+        const replacementsStr =
+            core.getInput("replacements") || "github.com/pulumi/pulumi-terraform-bridge/v2=pulumi-terraform-bridge";
         const replacements: replacement[] = [];
         for (const replaceStr of replacementsStr.split(",")) {
             const [replaceModule, replaceWith] = replaceStr.split("=", 2);
@@ -58,19 +58,11 @@ async function run() {
         }
 
         // Ensure that the bot token is masked in the log output
-        let hasPulumiBotToken = false;
-        const pulumiBotToken = core.getInput("pulumi-bot-token");
-        if (pulumiBotToken != undefined && pulumiBotToken != "") {
-            core.setSecret(pulumiBotToken);
-            hasPulumiBotToken = true;
-        }
-
-        // Ensure that the GitHub Actions token is available
-        let hasGitHubActionsToken = false;
-        const githubActionsToken = core.getInput("github-actions-token");
-        if (githubActionsToken != undefined && githubActionsToken != "") {
-            core.setSecret(githubActionsToken);
-            hasGitHubActionsToken = true;
+        let hasPullRequestToken = false;
+        const pullRequestToken = core.getInput("GITHUB_TOKEN") ?? core.getInput("pulumi-bot-token");
+        if (pullRequestToken != undefined && pullRequestToken != "") {
+            core.setSecret(pullRequestToken);
+            hasPullRequestToken = true;
         }
 
         const gopathBin = path.join(await find_gopath(), "bin");
@@ -111,16 +103,21 @@ async function run() {
 
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
-        await exec("go", ["mod", "download"], inDownstreamModOptions);
+
+        await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
         await exec("make", ["only_build"], inDownstreamOptions);
 
         await exec("git", ["add", "."], inDownstreamOptions);
-        await exec("git", ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`], inDownstreamOptions);
+        await exec(
+            "git",
+            ["commit", "--allow-empty", "-m", `Update to ${upstream}@${checkoutSHA}`],
+            inDownstreamOptions
+        );
 
-        if (hasPulumiBotToken && hasGitHubActionsToken) {
-            const url = `https://pulumi-bot:${pulumiBotToken}@github.com/pulumi-bot/${downstreamName}`;
+        if (hasPullRequestToken) {
+            const url = `https://pulumi-bot:${pullRequestToken}@github.com/pulumi-bot/${downstreamName}`;
 
             await exec("git", ["remote", "add", "pulumi-bot", url], inDownstreamOptions);
             await exec("git", ["push", "pulumi-bot", "--set-upstream", "--force", branchName], inDownstreamOptions);
@@ -130,19 +127,17 @@ async function run() {
 
             const diffUrl = `https://github.com/pulumi-bot/${downstreamName}/compare/${oldCommitSha}..${newCommitSha}`;
 
-            const client = new github.GitHub(githubActionsToken);
-
-            await client.issues.createComment({
-                owner: github.context.issue.owner,
-                repo: github.context.issue.repo,
-                issue_number: github.context.issue.number,
-                body: `Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}`,
-            });
+            // Write to summary markdown file for workflow.
+            core.summary.addRaw(`Diff for [${downstreamName}](${diffUrl}) with merge commit ${checkoutSHA}\n`).write();
         } else {
             await exec("git", ["show"], inDownstreamOptions);
         }
     } catch (error) {
-        core.setFailed(error.message);
+        if (error instanceof Error) {
+            core.setFailed(error.message);
+        } else {
+            core.setFailed(`Unhandled exception: ${error}`);
+        }
     }
 }
 
