@@ -1,6 +1,8 @@
 import * as core from "@actions/core";
 import { exec } from "@actions/exec";
+import * as io from "@actions/io";
 import * as path from "path";
+import * as fs from "fs";
 
 async function find_gopath(): Promise<string> {
     let output = "";
@@ -107,7 +109,27 @@ async function run() {
         await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
-        await exec("make", ["only_build"], inDownstreamOptions);
+        const summaryDir = "summary"
+        await io.mkdirP(summaryDir);
+        await exec("make", ["only_build"], {
+            ...inDownstreamOptions,
+            env: {
+                ...inDownstreamOptions.env,
+                COVERAGE_OUTPUT_DIR: summaryDir,
+            }});
+
+        try {
+            const f = await fs.readFile(`${summaryDir}/summary.json`);
+            const json = JSON.parse(f);
+            const fatals = json.Fatals.Number;
+            if (fatals > 0) {
+                core.setFailed(`Found ${fatals} fatal errors during codegen`);
+            }
+            core.summary.addRaw(await fs.readFile(`${summaryDir}/summary.json`));
+        } catch (err) {
+            // Not all providers have a summary, so if no file gets generated, we do nothing
+            if (err.code !== 'ENOENT') throw err;
+        }
 
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec(
