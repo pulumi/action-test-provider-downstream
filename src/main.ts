@@ -119,16 +119,19 @@ async function run() {
             }});
 
         try {
-            const f = await fs.readFile(`${summaryDir}/summary.json`);
-            const json = JSON.parse(f);
+            const f = fs.readFileSync(`${summaryDir}/summary.json`);
+            const json = JSON.parse(f.toString());
             const fatals = json.Fatals.Number;
             if (fatals > 0) {
                 core.setFailed(`Found ${fatals} fatal errors during codegen`);
             }
-            core.summary.addRaw(await fs.readFile(`${summaryDir}/summary.json`));
+            core.summary.addRaw(fs.readFileSync(`${summaryDir}/summary.json`).toString());
         } catch (err) {
             // Not all providers have a summary, so if no file gets generated, we do nothing
-            if (err.code !== 'ENOENT') throw err;
+            if (err instanceof Error) {
+                const e: any = err;
+                if (e.code !== 'ENOENT') throw err;
+            }
         }
 
         await exec("git", ["add", "."], inDownstreamOptions);
