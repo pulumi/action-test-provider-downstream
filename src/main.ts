@@ -93,7 +93,7 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        await exec("git", ["clone", downstreamRepo, downstreamDir]);
+        await exec("git", ["clone", "--quiet", downstreamRepo, downstreamDir]);
 
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
@@ -106,17 +106,23 @@ async function run() {
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
 
+        console.log("::group::go mod tidy");
         await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
+        console.log("::endgroup::");
+
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
-        const summaryDir = "summary"
+        const summaryDir = `${downstreamDir}/summary`
         await io.mkdirP(summaryDir);
+
+        console.log("::group::make only_build");
         await exec("make", ["only_build"], {
             ...inDownstreamOptions,
             env: {
                 ...inDownstreamOptions.env,
                 COVERAGE_OUTPUT_DIR: summaryDir,
             }});
+        console.log("::endgroup::");
 
         try {
             const f = fs.readFileSync(`${summaryDir}/summary.json`);
@@ -130,7 +136,11 @@ async function run() {
             // Not all providers have a summary, so if no file gets generated, we do nothing
             if (err instanceof Error) {
                 const e: any = err;
-                if (e.code !== 'ENOENT') throw err;
+                if (e.code !== 'ENOENT') {
+                    throw err
+                } else {
+                    console.log("No summary found.")
+                };
             }
         }
 
