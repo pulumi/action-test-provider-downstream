@@ -25,6 +25,10 @@ inputs:
     deprecationMessage: 'Use a github action to create a comment or view the job summary instead.'
     description: 'Issue to comment on'
     required: false
+  enforce-fatal:
+    description: 'If the action should fail when encountering fatal errors during codegen.'
+    required: false
+    default: false
 runs:
   using: 'node16'
   main: 'lib/main.js'
