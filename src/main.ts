@@ -1,6 +1,8 @@
 import * as core from "@actions/core";
 import { exec } from "@actions/exec";
+import * as io from "@actions/io";
 import * as path from "path";
+import * as fs from "fs";
 
 async function find_gopath(): Promise<string> {
     let output = "";
@@ -91,7 +93,7 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        await exec("git", ["clone", downstreamRepo, downstreamDir]);
+        await exec("git", ["clone", "--quiet", downstreamRepo, downstreamDir]);
 
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
@@ -104,10 +106,47 @@ async function run() {
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
 
+        console.log("::group::go mod tidy");
         await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
+        console.log("::endgroup::");
+
         await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
-        await exec("make", ["only_build"], inDownstreamOptions);
+        const summaryDir = `${downstreamDir}/summary`
+        await io.mkdirP(summaryDir);
+
+        console.log("::group::make only_build");
+        await exec("make", ["only_build"], {
+            ...inDownstreamOptions,
+            env: {
+                ...inDownstreamOptions.env,
+                COVERAGE_OUTPUT_DIR: summaryDir,
+            }});
+        console.log("::endgroup::");
+
+        try {
+            const f = fs.readFileSync(`${summaryDir}/summary.json`);
+            const json = JSON.parse(f.toString());
+            const fatals = json.Fatals.Number;
+            if (fatals > 0) {
+                if (core.getBooleanInput("enforce-fatal", { required: false }))
+                    core.setFailed(`Found ${fatals} fatal errors during codegen`);
+                else
+                    core.warning("${fatals} examples crashed codegen");
+                delete json["ConversionErrors"];
+                core.summary.addRaw(json);
+            }
+        } catch (err) {
+            // Not all providers have a summary, so if no file gets generated, we do nothing
+            if (err instanceof Error) {
+                const e: any = err;
+                if (e.code !== 'ENOENT') {
+                    throw err
+                } else {
+                    console.log("No summary found.")
+                };
+            }
+        }
 
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec(
