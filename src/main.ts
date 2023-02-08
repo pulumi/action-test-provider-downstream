@@ -93,7 +93,7 @@ async function run() {
             cwd: downstreamModDirFull,
         };
 
-        await exec("git", ["clone", "--quiet", downstreamRepo, downstreamDir]);
+        await exec("git", ["clone", "--recurse-submodules", "--quiet", downstreamRepo, downstreamDir]);
 
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
