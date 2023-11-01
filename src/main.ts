@@ -179,6 +179,17 @@ async function run() {
         } else {
             await exec("git", ["show"], inDownstreamOptions);
         }
+        const targets = core.getInput("make-targets");
+        console.log("::group::make make-targets");
+        for (const target of targets) {
+            await exec("make", [target], {
+                ...inDownstreamOptions,
+                env: {
+                    ...inDownstreamOptions.env,
+                    COVERAGE_OUTPUT_DIR: summaryDir,
+                }});
+        }
+        console.log("::endgroup::");
     } catch (error) {
         if (error instanceof Error) {
             core.setFailed(error.message);
