@@ -95,6 +95,7 @@ async function run() {
 
         await exec("git", ["clone", "--quiet", downstreamRepo, downstreamDir]);
 
+        await exec("git", ["submodule", "update", "--init", "--recursive"], inDownstreamOptions);
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
