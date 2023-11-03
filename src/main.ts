@@ -100,6 +100,11 @@ async function run() {
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
 
+        try {
+            // Try to make upstream if it exists.
+            await exec("make", ["upstream"], inDownstreamOptions);
+        } catch(e) {
+        }
         for (const replace of replacements) {
             const replacePath = path.join(relativeRoot, "..", replace.with);
             core.info(`replacing ${replace.module} with ${replace.with} @ ${replacePath}`);
