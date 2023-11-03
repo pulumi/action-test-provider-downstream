@@ -68,12 +68,13 @@ async function run() {
         }
 
         const gopathBin = path.join(await find_gopath(), "bin");
-        const newPath = `${gopathBin}:${process.env.PATH}`;
 
         const parentDir = path.resolve(process.cwd(), "..");
         const downstreamRepo = core.getInput("downstream-url");
         const downstreamName = core.getInput("downstream-name");
         const downstreamDir = path.join(parentDir, downstreamName);
+
+        const newPath = `${gopathBin}:${path.join(downstreamDir, "bin")}:${process.env.PATH}`;
 
         const downstreamModDirFull = path.dirname(path.join(downstreamDir, gomodPath));
         const relativeRoot = path.relative(downstreamModDirFull, downstreamDir);
@@ -95,6 +96,7 @@ async function run() {
 
         await exec("git", ["clone", "--quiet", downstreamRepo, downstreamDir]);
 
+        await exec("git", ["submodule", "update", "--init", "--recursive"], inDownstreamOptions);
         await exec("git", ["checkout", "-b", branchName], inDownstreamOptions);
         await exec("git", ["config", "user.name", gitUser], inDownstreamOptions);
         await exec("git", ["config", "user.email", gitEmail], inDownstreamOptions);
@@ -106,31 +108,44 @@ async function run() {
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
 
+        try {
+            // Try to make upstream if it exists.
+            await exec("make", ["upstream"], inDownstreamOptions);
+        } catch(e) {
+        }
+
         console.log("::group::go mod tidy");
-        await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
+        try {
+            await exec("go", ["mod", "tidy"], inDownstreamModOptions);
+        } catch(e) {
+        }
         console.log("::endgroup::");
 
-        await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
+        console.log("::group::make only_build");
 
         const summaryDir = `${downstreamDir}/summary`
         await io.mkdirP(summaryDir);
 
-        // Delete old sdk's to prevent un-deleted files error-ing compilation.
-        const sdkDir = `${downstreamDir}/sdk`;
-        console.log(`Deleting ${sdkDir}/LANG folders`);
-        fs.readdirSync(sdkDir).filter(f => fs.statSync(`${sdkDir}/${f}`).isDirectory())
-            .forEach(dir => {
-            fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
-        });
-
-        console.log("::group::make only_build");
-        await exec("make", ["only_build"], {
+        // Build targets
+        const buildTargets = (core.getInput("buildTargets") || "only_build").split(",");
+        await exec("make", buildTargets, {
             ...inDownstreamOptions,
             env: {
                 ...inDownstreamOptions.env,
                 COVERAGE_OUTPUT_DIR: summaryDir,
             }});
         console.log("::endgroup::");
+
+        await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
+
+        //// Delete old sdk's to prevent un-deleted files error-ing compilation.
+        //const sdkDir = `${downstreamDir}/sdk`;
+        //console.log(`Deleting ${sdkDir}/LANG folders`);
+        //fs.readdirSync(sdkDir).filter(f => fs.statSync(`${sdkDir}/${f}`).isDirectory())
+        //    .forEach(dir => {
+        //    fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
+        //});
+        //
 
         try {
             const f = fs.readFileSync(`${summaryDir}/summary.json`);
@@ -155,6 +170,25 @@ async function run() {
                 };
             }
         }
+
+        console.log("::group::make test");
+        try {
+            // Try to make upstream if it exists.
+            const inExamplesOptions = {
+                cwd: path.join(downstreamDir, "examples"),
+                env: {
+                    ...process.env,
+                    PATH: newPath,
+                },
+            };
+            await exec("go", ["mod", "tidy"], inExamplesOptions);
+        } catch(e) {
+        }
+
+        const testTargets = (core.getInput("testTargets") || "test").split(",");
+
+        await exec("make", testTargets, inDownstreamOptions);
+        console.log("::endgroup::");
 
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec(
