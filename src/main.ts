@@ -116,13 +116,13 @@ async function run() {
         const summaryDir = `${downstreamDir}/summary`
         await io.mkdirP(summaryDir);
 
-        // Delete old sdk's to prevent un-deleted files error-ing compilation.
-        const sdkDir = `${downstreamDir}/sdk`;
-        console.log(`Deleting ${sdkDir}/LANG folders`);
-        fs.readdirSync(sdkDir).filter(f => fs.statSync(`${sdkDir}/${f}`).isDirectory())
-            .forEach(dir => {
-            fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
-        });
+        //// Delete old sdk's to prevent un-deleted files error-ing compilation.
+        //const sdkDir = `${downstreamDir}/sdk`;
+        //console.log(`Deleting ${sdkDir}/LANG folders`);
+        //fs.readdirSync(sdkDir).filter(f => fs.statSync(`${sdkDir}/${f}`).isDirectory())
+        //    .forEach(dir => {
+        //    fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
+        //});
 
         try {
             // Try to make upstream if it exists.
