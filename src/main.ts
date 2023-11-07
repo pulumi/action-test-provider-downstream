@@ -123,7 +123,7 @@ async function run() {
         //    .forEach(dir => {
         //    fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
         //});
-
+        //
         try {
             // Try to make upstream if it exists.
             await exec("make", ["upstream"], inDownstreamOptions);
@@ -164,6 +164,19 @@ async function run() {
         }
 
         console.log("::group::make test");
+        try {
+            // Try to make upstream if it exists.
+            const inExamplesOptions = {
+                cwd: path.join(downstreamDir, "examples"),
+                env: {
+                    ...process.env,
+                    PATH: newPath,
+                },
+            };
+            await exec("go", ["mod", "tidy"], inExamplesOptions);
+        } catch(e) {
+        }
+
         await exec("make", ["test"], inDownstreamOptions);
         console.log("::endgroup::");
 
