@@ -114,9 +114,12 @@ async function run() {
         } catch(e) {
         }
 
-        //console.log("::group::go mod tidy");
-        //await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
-        //console.log("::endgroup::");
+        console.log("::group::go mod tidy");
+        try {
+            await exec("go", ["mod", "tidy"], inDownstreamModOptions);
+        } catch(e) {
+        }
+        console.log("::endgroup::");
 
         console.log("::group::make only_build");
         const summaryDir = `${downstreamDir}/summary`
