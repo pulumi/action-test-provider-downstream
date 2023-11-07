@@ -68,12 +68,13 @@ async function run() {
         }
 
         const gopathBin = path.join(await find_gopath(), "bin");
-        const newPath = `${gopathBin}:${process.env.PATH}`;
 
         const parentDir = path.resolve(process.cwd(), "..");
         const downstreamRepo = core.getInput("downstream-url");
         const downstreamName = core.getInput("downstream-name");
         const downstreamDir = path.join(parentDir, downstreamName);
+
+        const newPath = `${path.join(downstreamDir, "bin")}:${gopathBin}:${process.env.PATH}`;
 
         const downstreamModDirFull = path.dirname(path.join(downstreamDir, gomodPath));
         const relativeRoot = path.relative(downstreamModDirFull, downstreamDir);
