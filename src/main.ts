@@ -108,14 +108,28 @@ async function run() {
             await exec("go", ["mod", "edit", `-replace=${replace.module}=${replacePath}`], inDownstreamModOptions);
         }
 
+        try {
+            // Try to make upstream if it exists.
+            await exec("make", ["upstream"], inDownstreamOptions);
+        } catch(e) {
+        }
+
         console.log("::group::go mod tidy");
         await exec("go", ["mod", "tidy", "-compat=1.17"], inDownstreamModOptions);
         console.log("::endgroup::");
 
-        await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
-
+        console.log("::group::make only_build");
         const summaryDir = `${downstreamDir}/summary`
         await io.mkdirP(summaryDir);
+        await exec("make", ["only_build"], {
+            ...inDownstreamOptions,
+            env: {
+                ...inDownstreamOptions.env,
+                COVERAGE_OUTPUT_DIR: summaryDir,
+            }});
+        console.log("::endgroup::");
+
+        await exec("git", ["commit", "-a", "-m", `Replace ${upstream} module`], inDownstreamOptions);
 
         //// Delete old sdk's to prevent un-deleted files error-ing compilation.
         //const sdkDir = `${downstreamDir}/sdk`;
@@ -125,20 +139,6 @@ async function run() {
         //    fs.rmSync(`${sdkDir}/${dir}`, { recursive: true, force: true });
         //});
         //
-        try {
-            // Try to make upstream if it exists.
-            await exec("make", ["upstream"], inDownstreamOptions);
-        } catch(e) {
-        }
-
-        console.log("::group::make only_build");
-        await exec("make", ["only_build"], {
-            ...inDownstreamOptions,
-            env: {
-                ...inDownstreamOptions.env,
-                COVERAGE_OUTPUT_DIR: summaryDir,
-            }});
-        console.log("::endgroup::");
 
         try {
             const f = fs.readFileSync(`${summaryDir}/summary.json`);
