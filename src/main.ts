@@ -163,6 +163,10 @@ async function run() {
             }
         }
 
+        console.log("::group::make test");
+        await exec("make", ["test"], inDownstreamOptions);
+        console.log("::endgroup::");
+
         await exec("git", ["add", "."], inDownstreamOptions);
         await exec(
             "git",
