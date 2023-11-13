@@ -74,7 +74,7 @@ async function run() {
         const downstreamName = core.getInput("downstream-name");
         const downstreamDir = path.join(parentDir, downstreamName);
 
-        const newPath = `${path.join(downstreamDir, "bin")}:${gopathBin}:${process.env.PATH}`;
+        const newPath = `${gopathBin}:${path.join(downstreamDir, "bin")}:${process.env.PATH}`;
 
         const downstreamModDirFull = path.dirname(path.join(downstreamDir, gomodPath));
         const relativeRoot = path.relative(downstreamModDirFull, downstreamDir);
@@ -122,9 +122,13 @@ async function run() {
         console.log("::endgroup::");
 
         console.log("::group::make only_build");
+
         const summaryDir = `${downstreamDir}/summary`
         await io.mkdirP(summaryDir);
-        await exec("make", ["only_build"], {
+
+        // Build targets
+        const buildTargets = (core.getInput("buildTargets") || "only_build").split(",");
+        await exec("make", buildTargets, {
             ...inDownstreamOptions,
             env: {
                 ...inDownstreamOptions.env,
@@ -181,7 +185,9 @@ async function run() {
         } catch(e) {
         }
 
-        await exec("make", ["test"], inDownstreamOptions);
+        const testTargets = (core.getInput("testTargets") || "test").split(",");
+
+        await exec("make", testTargets, inDownstreamOptions);
         console.log("::endgroup::");
 
         await exec("git", ["add", "."], inDownstreamOptions);
